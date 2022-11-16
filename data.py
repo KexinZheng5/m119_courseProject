@@ -14,7 +14,7 @@ class Data():
 
     # state machine variables
     state = "safe"                  # states: safe, warning, danger
-    safe_temp = 19.68               # calibrate at the beginning of demo, should indicate what temperature is considered safe
+    safe_temp = 21                  # calibrate at the beginning of demo, should indicate what temperature is considered safe
     hot_temp_diff = 1.5             # the amount over room_temp to be considered "hot"
     hot_temp = safe_temp + hot_temp_diff    # temperature considered to be "hot"
     time_hot = 0                    # variable for keeping track how long the temp has been recorded as hot
@@ -38,7 +38,6 @@ class Data():
             self.ax[i].set_title(title[i])
             self.ax[i].get_xaxis().set_visible(False)
 
-        print(len(self.temperature))
         # create plot
         self.time = range(len(self.temperature))
         self.lt, = self.ax[0].plot(self.time, self.temperature, color="red")
