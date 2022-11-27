@@ -42,7 +42,7 @@ class Data():
         self.time = range(len(self.temperature))
         self.lt, = self.ax[0].plot(self.time, self.temperature, color="red")
         self.lh, = self.ax[1].plot(self.time, self.humidity, color="blue")
-        self.ld, = self.ax[2].plot(self.time, self.distance, color="green")
+        self.ld, = self.ax[2].plot(range(len(self.distance)), self.distance, color="green")
 
         self.fig.canvas.mpl_connect('close_event', self.on_close)
         self.visualized = True
@@ -50,16 +50,26 @@ class Data():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def updateData(self, t, h, d):
+    def updateTemperature(self, t, h):
         # remove excess data if necessary
         if(len(self.temperature) == self.LIMIT):
             self.temperature.pop(0)
             self.humidity.pop(0)
-            self.distance.pop(0)
 
         # append new data
         self.temperature.append(t)
         self.humidity.append(h)
+
+        # resume animation
+        if (self.visualized):
+            self.updateGraph()
+
+    def updateDistance(self, d):
+        # remove excess data if necessary
+        if(len(self.distance) == self.LIMIT):
+            self.distance.pop(0)
+
+        # append new data
         self.distance.append(d)
 
         # resume animation
@@ -73,7 +83,7 @@ class Data():
         self.lt.set_ydata(self.temperature)
         self.lh.set_xdata(self.time)
         self.lh.set_ydata(self.humidity)
-        self.ld.set_xdata(self.time)
+        self.ld.set_xdata(range(len(self.distance)))
         self.ld.set_ydata(self.distance)
 
         # update x,y bound

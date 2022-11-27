@@ -8,7 +8,6 @@ class GUI():
 
     d = data.Data()
 
-
     def __init__(self):
         self.exit = False
         self.root = Tk()
@@ -19,8 +18,16 @@ class GUI():
         btn = Button(self.root, text="Data Visualization", command=self.d.visualization)
         btn.pack()
 
-    def updateData(self, t, h, d):
-        self.d.updateData(t, h, d)
+    def updateTemperature(self, t, h):
+        self.d.updateTemperature(t, h)
+        self.updateGUI()
+
+    # update
+    def updateDistance(self, d):
+        self.d.updateDistance(d)
+        self.updateGUI()
+        
+    def updateGUI(self):
         al = self.d.alarmLevel()
         match al:
             case 0:
@@ -32,6 +39,10 @@ class GUI():
             case _:
                 self.root.configure(bg='grey')
         self.root.update()
+
+    # create alert popup window when temperature is high for too long
+    def popupAlert(self):
+        pass
 
     def on_close(self):
         print("exiting...")
