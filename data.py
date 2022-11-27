@@ -1,12 +1,16 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
+import datetime
 
 class Data():
     # data (new data is appended to arrays, first item popped when full)
     temperature = []
-    humidity = []
     distance = []
+
+    # timers
+    t_snooze = None # snooze count down
+    t_yellow = datetime.timedelta(seconds = 0)    # timer starts when state is yellow
 
     LIMIT = 100     # limit for number of data points
     t_0 = 0          # initial time
@@ -19,10 +23,10 @@ class Data():
     hot_temp = safe_temp + hot_temp_diff    # temperature considered to be "hot"
     time_hot = 0                    # variable for keeping track how long the temp has been recorded as hot
     
-    acceptable_time_hot = 10        # parameter for how long the temp can be hot before going to danger state
+    acceptable_time_hot = 100        # parameter for how long the temp can be hot before going to danger state
     safe_time_after_movement = 3    # parameter for how long the danger level is "safe" after movement detected
     safe_time_left = 0              # variable for keeping track how long to be "safe" for after movement detected
-    movement_threshold = 5          # parameter for how much change in distance should be considered movement
+    movement_threshold = 50          # parameter for how much change in distance should be considered movement
 
     # visualization
     visualized = False
@@ -30,19 +34,37 @@ class Data():
     def __init__(self) -> None:
         self.t0 = time.time()
 
+    # set, update, and get snooze countdown
+    def setSnooze(self, time):
+        self.t_snooze = datetime.timedelta(seconds = time * 60)
+
+    def updateSnooze(self):
+        self.t_snooze = self.t_snooze - datetime.timedelta(seconds = 1)
+
+    def getSnooze(self):
+        return self.t_snooze
+
+    # set, update, and get yellow state timer
+    def resetYellow(self):
+        self.t_yellow = datetime.timedelta(seconds = 0)
+
+    def updateYellow(self):
+        self.t_yellow = self.t_yellow + datetime.timedelta(seconds = 1)
+
+    def getYellow(self):
+        return self.t_yellow
+
     def visualization(self):
         # create and format the plot
-        self.fig, self.ax = plt.subplots(3)
-        title = ["Temperature", "Humidity", "Distance"]
-        for i in range(3):
+        self.fig, self.ax = plt.subplots(2)
+        title = ["Temperature", "Distance"]
+        for i in range(2):
             self.ax[i].set_title(title[i])
             self.ax[i].get_xaxis().set_visible(False)
 
         # create plot
-        self.time = range(len(self.temperature))
-        self.lt, = self.ax[0].plot(self.time, self.temperature, color="red")
-        self.lh, = self.ax[1].plot(self.time, self.humidity, color="blue")
-        self.ld, = self.ax[2].plot(range(len(self.distance)), self.distance, color="green")
+        self.lt, = self.ax[0].plot(range(len(self.temperature)), self.temperature, color="red")
+        self.ld, = self.ax[1].plot(range(len(self.distance)), self.distance, color="green")
 
         self.fig.canvas.mpl_connect('close_event', self.on_close)
         self.visualized = True
@@ -50,15 +72,13 @@ class Data():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def updateTemperature(self, t, h):
+    def updateTemperature(self, t):
         # remove excess data if necessary
         if(len(self.temperature) == self.LIMIT):
             self.temperature.pop(0)
-            self.humidity.pop(0)
 
         # append new data
         self.temperature.append(t)
-        self.humidity.append(h)
 
         # resume animation
         if (self.visualized):
@@ -78,11 +98,8 @@ class Data():
 
     def updateGraph(self):
         # update graph
-        self.time = range(len(self.temperature))
-        self.lt.set_xdata(self.time)
+        self.lt.set_xdata(range(len(self.temperature)))
         self.lt.set_ydata(self.temperature)
-        self.lh.set_xdata(self.time)
-        self.lh.set_ydata(self.humidity)
         self.ld.set_xdata(range(len(self.distance)))
         self.ld.set_ydata(self.distance)
 
@@ -91,8 +108,6 @@ class Data():
         self.ax[0].autoscale_view(True,True,True) 
         self.ax[1].relim() 
         self.ax[1].autoscale_view(True,True,True) 
-        self.ax[2].relim() 
-        self.ax[2].autoscale_view(True,True,True) 
 
         #print("updated")
         self.fig.canvas.draw()
@@ -100,6 +115,8 @@ class Data():
 
     def on_close(self, event):
         self.visualization = False
+
+
 
 
     # Runs the state machine to determine what level of danger
@@ -118,7 +135,7 @@ class Data():
 
         # distance should override states and reset to safe, it should also remain safe for safe_time_after_movement
         if (distance_diff > self.movement_threshold):
-            self.state = "safe"
+            self.state = "warning"
             self.safe_time_left = self.safe_time_after_movement
         
         # movement will completely override state machine and state machine continues when no more safe time from movement

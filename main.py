@@ -34,8 +34,7 @@ async def getTemperature(device, g):
         try:
             # fetch data
             while(g.exit == False):
-                g.updateTemperature(byteToFloat(await client.read_gatt_char(temperature_uuid)), 
-                    byteToFloat(await client.read_gatt_char(humidity_uuid)))
+                g.updateTemperature(byteToFloat(await client.read_gatt_char(temperature_uuid)))
                 await asyncio.sleep(0)
         except Exception as e:
             print("ERROR:", e)
