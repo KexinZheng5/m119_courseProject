@@ -9,7 +9,7 @@ class Data():
     distance = []
 
     # timers
-    t_snooze = None # snooze count down
+    t_snooze = datetime.timedelta(seconds = 0) # snooze count down
     t_yellow = datetime.timedelta(seconds = 0)    # timer starts when state is yellow
 
     LIMIT = 100     # limit for number of data points

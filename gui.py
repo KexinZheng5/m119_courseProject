@@ -5,8 +5,8 @@ class GUI():
     # window size
     window_width = 500
     window_height = 300
-    popup_width = 400
-    popup_height = 250
+    popup_width = 300
+    popup_height = 150
     popup = None
     badInput = None
     cbg = '#3d3d3d'
@@ -31,11 +31,30 @@ class GUI():
         self.root.protocol("WM_DELETE_WINDOW", self.onClose)
         self.root.resizable(False, False)
 
-        frame = Frame(self.root, width=self.window_width-50, height=self.window_height-100, bg=self.cbg)
+        # frame
+        frame = Frame(self.root, width=self.window_width-50, height=self.window_height-80, bg=self.cbg)
         frame.place(relx=0.5, rely=0, anchor=N)
 
+        # info label
         self.info = Label(self.root, text = "", bg=self.cbg, fg=self.ctext, font=('Arial 16'))
-        self.info.place(relx=0.5, rely=0.5, anchor=CENTER)
+        self.info.place(relx=0.5, rely=0.4, anchor=CENTER)
+
+        # snooze
+        # snooze time textbox
+        self.minBox = Text(self.root, height = 1, width = 5)
+        self.minBox.place(relx=0.1, rely=0.64, anchor=W)
+        minTxt = Label(self.root, bg=self.cbg, fg=self.ctext, text = "minute")
+        minTxt.place(relx=0.3, rely=0.64, anchor=E)
+
+        # buttons
+        snooze = Button(self.root, 
+                        text="Snooze", 
+                        bg=self.cbg,
+                        fg=self.ctext,
+                        activebackground="#5c5c5c",
+                        activeforeground=self.ctext,
+                        command=self.snooze)
+        snooze.place(relx=0.5, rely=0.64, anchor=E)
 
         # add visualization button
         btn = Button(self.root, 
@@ -88,38 +107,33 @@ class GUI():
         self.popup.title("UNATTENDED STOVE!")
         self.popup.geometry(f'{self.popup_width}x{self.popup_height}')
         self.popup.resizable(False, False)
+        self.popup.configure(bg=self.cbg)
         self.popup.protocol("WM_DELETE_WINDOW", self.closePopup)
 
         # alert text
-        msg = Label(self.popup, text = "Unattended stove detected!")
-        msg.place(relx=0.5, rely=0.1, anchor=CENTER)
-
-        # set snooze time
-        msgs = Label(self.popup, text = "Set snooze time:")
-        msgs.place(relx=0.5, rely=0.4, anchor=CENTER)
-
-        # snooze time textbox
-        self.minBox = Text(self.popup, height = 1, width = 5)
-        self.minBox.place(relx=0.4, rely=0.5, anchor=CENTER)
-        minTxt = Label(self.popup, text = "minute")
-        minTxt.place(relx=0.6, rely=0.5, anchor=CENTER)
-
-        # buttons
-        snooze = Button(self.popup, text="Snooze", command=self.snooze)
-        snooze.place(relx=0.5, rely=0.8, anchor=CENTER)
+        msg = Label(self.popup, fg="red", bg=self.cbg, font=('Arial 16'), text = "Unattended stove detected!")
+        msg.place(relx=0.5, rely=0.5, anchor=CENTER)
 
     def snooze(self):
         min = self.minBox.get("1.0", "end-1c")
         if min.isdigit():
-            if(self.badInput != None):
+            if self.badInput != None:
                 self.badInput.destroy()
+                self.badInput = None
+            # check if the snooze time is new (is not overwritten)
+            new = str(self.d.getSnooze()) == "0:00:00"
             self.d.setSnooze(int(min))
-            self.updateSnooze()
-            self.closePopup()
+            if new:
+                self.updateSnooze()
+            if self.popup != None:
+                self.closePopup()
         else:
-            if(self.badInput == None):
+            if self.badInput == None and self.popup != None:
                 self.badInput = Label(self.popup, fg='red', text = "Please enter a valid number.")
                 self.badInput.place(relx=0.5, rely=0.6, anchor=CENTER)
+            elif self.badInput == None and self.popup == None:
+                self.badInput = Label(self.root, fg='red', bg=self.cbg, text = "Please enter a valid number.")
+                self.badInput.place(relx=0.9, rely=0.64, anchor=E)
 
     def updateSnooze(self):
         # display timer
