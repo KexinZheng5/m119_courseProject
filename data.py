@@ -9,7 +9,7 @@ class Data():
     # timers
     t_snooze = datetime.timedelta(seconds = 0) # snooze count down
     t_yellow = datetime.timedelta(seconds = 0)    # timer starts when state is yellow
-    calibrated = False
+    calibrated = False                          # indicate whether the device has been calibrated
 
     LIMIT = 100     # limit for number of data points
 
@@ -117,6 +117,7 @@ class Data():
     def alarmLevel(self):
         # latest temperature recorded
         if((len(self.temperature)) > 0):
+            # record room temperature if the device is not calibrated
             if(not self.calibrated):
                 self.safe_temp = self.temperature[-1]
                 self.yellow_hot_temp = self.safe_temp + self.yellow_hot_temp_diff
