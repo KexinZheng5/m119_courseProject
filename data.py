@@ -16,13 +16,13 @@ class Data():
     # state machine variables
     state = "safe"                                          # states: safe, warning, danger
     safe_temp = 0                                          # calibrate at the beginning of demo, should indicate what temperature is considered safe
-    yellow_hot_temp_diff = 3                                # the amount over room_temp to transition from green -> yellow
+    yellow_hot_temp_diff = 8                                # the amount over room_temp to transition from green -> yellow
     yellow_hot_temp = 0      # temperature considered to be enough to transition from green -> yellow
-    red_hot_temp_diff = 6                                  # the amount over room_temp to transition from yellow -> red
+    red_hot_temp_diff = 13                                  # the amount over room_temp to transition from yellow -> red
     red_hot_temp = 0            # temperature considered to be enough to transition from yellow -> red
     
-    acceptable_time_hot = datetime.timedelta(seconds = 30)                 # parameter for how long the temp can be hot before going to danger state
-    safe_time_after_movement = datetime.timedelta(seconds = 30)             # parameter for how long the danger level is "safe" after movement detected
+    acceptable_time_hot = datetime.timedelta(seconds = 10*60)                 # parameter for how long the temp can be hot before going to danger state
+    safe_time_after_movement = datetime.timedelta(seconds = 3*60)             # parameter for how long the danger level is "safe" after movement detected
     safe_time_start = datetime.datetime.now()                          # variable for keeping track how long to be "safe" for after movement detected
     movement_threshold = 30                     # parameter for how much change in distance should be considered movement
 
