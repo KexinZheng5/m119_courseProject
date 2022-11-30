@@ -141,10 +141,6 @@ class Data():
         # update safe_time_start if there is distance detected
         if (distance_diff > self.movement_threshold):
             self.safe_time_start = datetime.datetime.now()
-        # if no distance detected, then decrement safe_time_after_movement if decrementable
-        #else:
-        #    if (self.safe_time_left > datetime.timedelta(seconds = 0)):
-        #        self.safe_time_left = self.safe_time_left - datetime.timedelta(seconds = 1)
 
         # helper variable representing if someone is there
         movement_detected = self.safe_time_after_movement > datetime.datetime.now() - self.safe_time_start
