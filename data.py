@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import time
 import datetime
 
 class Data():
@@ -11,28 +9,26 @@ class Data():
     # timers
     t_snooze = datetime.timedelta(seconds = 0) # snooze count down
     t_yellow = datetime.timedelta(seconds = 0)    # timer starts when state is yellow
+    calibrated = False
 
     LIMIT = 100     # limit for number of data points
-    t_0 = 0          # initial time
-    t_h = 0
 
     # state machine variables
-    state = "safe"                  # states: safe, warning, danger
-    safe_temp = 21                  # calibrate at the beginning of demo, should indicate what temperature is considered safe
-    hot_temp_diff = 1.5             # the amount over room_temp to be considered "hot"
-    hot_temp = safe_temp + hot_temp_diff    # temperature considered to be "hot"
-    time_hot = 0                    # variable for keeping track how long the temp has been recorded as hot
+    state = "safe"                                          # states: safe, warning, danger
+    safe_temp = 0                                          # calibrate at the beginning of demo, should indicate what temperature is considered safe
+    yellow_hot_temp_diff = 3                                # the amount over room_temp to transition from green -> yellow
+    yellow_hot_temp = 0      # temperature considered to be enough to transition from green -> yellow
+    red_hot_temp_diff = 6                                  # the amount over room_temp to transition from yellow -> red
+    red_hot_temp = 0            # temperature considered to be enough to transition from yellow -> red
     
-    acceptable_time_hot = 100        # parameter for how long the temp can be hot before going to danger state
-    safe_time_after_movement = 3    # parameter for how long the danger level is "safe" after movement detected
-    safe_time_left = 0              # variable for keeping track how long to be "safe" for after movement detected
-    movement_threshold = 50          # parameter for how much change in distance should be considered movement
+    acceptable_time_hot = datetime.timedelta(seconds = 30)                 # parameter for how long the temp can be hot before going to danger state
+    safe_time_after_movement = datetime.timedelta(seconds = 30)             # parameter for how long the danger level is "safe" after movement detected
+    safe_time_start = datetime.datetime.now()                          # variable for keeping track how long to be "safe" for after movement detected
+    movement_threshold = 30                     # parameter for how much change in distance should be considered movement
 
     # visualization
     visualized = False
 
-    def __init__(self) -> None:
-        self.t0 = time.time()
 
     # set, update, and get snooze countdown
     def setSnooze(self, time):
@@ -117,12 +113,19 @@ class Data():
         self.visualization = False
 
 
-
-
     # Runs the state machine to determine what level of danger
     def alarmLevel(self):
         # latest temperature recorded
-        latest_temp = self.temperature[-1]
+        if((len(self.temperature)) > 0):
+            if(not self.calibrated):
+                self.safe_temp = self.temperature[-1]
+                self.yellow_hot_temp = self.safe_temp + self.yellow_hot_temp_diff
+                self.red_hot_temp = self.safe_temp + self.red_hot_temp_diff   
+                self.calibrated = True
+            latest_temp = self.temperature[-1]
+        else:
+            return 0
+        
 
         # distance_diff is 0 if there is only 1 data point and then it becomes the difference between most recent two points
         distance_diff = 0
@@ -130,56 +133,70 @@ class Data():
             distance_diff = abs(self.distance[-1] - self.distance[-2])
         
         # bool to determine whether the temp is currently "low" or "high"
-        temp_is_low = (latest_temp < self.hot_temp)
-        temp_is_high = (latest_temp >= self.hot_temp)
+        temp_is_safe = (latest_temp < self.yellow_hot_temp)
+        temp_is_warning = (latest_temp >= self.yellow_hot_temp and latest_temp < self.red_hot_temp)
+        temp_is_danger = (latest_temp >= self.red_hot_temp)
 
-        # distance should override states and reset to safe, it should also remain safe for safe_time_after_movement
+        # update safe_time_start if there is distance detected
         if (distance_diff > self.movement_threshold):
-            self.state = "warning"
-            self.safe_time_left = self.safe_time_after_movement
-        
-        # movement will completely override state machine and state machine continues when no more safe time from movement
-        if (self.safe_time_left > 0):
-            self.safe_time_left -= 1
-            self.state = "safe"
-        # state machine operating on temperature
-        elif (self.safe_time_left == 0):
-            # if in safe state, we can just check if temp still low or not
-            if (self.state == "safe"):
-                if (temp_is_low):
-                    self.state = "safe"
-                elif (temp_is_high):
-                    # when temp is first recorded to be high, mark the time by resetting timer (time_hot)
-                    self.state = "warning"
-                    self.time_hot = 0
-            
-            # if we are in warning state for 5s, then change to danger
-            elif (self.state == "warning"):
-                self.time_hot += 1
+            self.safe_time_start = datetime.datetime.now()
+        # if no distance detected, then decrement safe_time_after_movement if decrementable
+        #else:
+        #    if (self.safe_time_left > datetime.timedelta(seconds = 0)):
+        #        self.safe_time_left = self.safe_time_left - datetime.timedelta(seconds = 1)
 
-                # if the temperature is low, move back to safe state
-                if (temp_is_low):
-                    self.state = "safe"
-                    self.time_hot = 0
-                # if the temperature is high, check how long the timer has been since we are in warning state
-                    # if less than threshold, stay in this state
-                    # if more than threshold, then move to danger state
-                elif (temp_is_high):
-                    if (self.time_hot <= self.acceptable_time_hot):
-                        self.state = "warning"
-                    elif (self.time_hot > self.acceptable_time_hot):
-                        self.state = "danger"
+        # helper variable representing if someone is there
+        movement_detected = self.safe_time_after_movement > datetime.datetime.now() - self.safe_time_start
+        
+        # if in safe state, we can just check if temp still low or not
+        if (self.state == "safe"):
+            if (temp_is_safe):
+                self.state = "safe"
+            elif (temp_is_warning or temp_is_danger):
+                # when temp is first recorded to be high, change state to warning
+                self.state = "warning"
+
+        # if we are in warning state for > acceptable_time_hot amount of time change to danger
+        elif (self.state == "warning"):
+            # increment time yellow
+
+            # if the temperature is low, move back to safe state
+            if (temp_is_safe):
+                self.state = "safe"
+            # if the temperature is medium, check how long the timer has been since we are in warning state
+                # if less than threshold, stay in this state
+                # if more than threshold, then move to danger state
+            if (temp_is_warning):
+                if (self.getYellow() <= self.acceptable_time_hot):
+                    self.state = "warning"
+                elif (self.getYellow() > self.acceptable_time_hot):
+                    self.state = "danger"
+            # if temperature is too high, move to danger state immediately
+            if (temp_is_danger):
+                self.state = "danger"
+
+        # in danger state
+        elif (self.state == "danger"):
+            # continue adding to yellow time
 
             # if temp low, move straight back to safe state and reset timer
-            elif (self.state == "danger"):
-                self.time_hot += 1
+            if (temp_is_safe):
+                self.state = "safe"
+            
+            # ONLY if there was movement detected do we move down to warning state
+            elif (movement_detected):
+                self.state = "warning"
 
-                if (temp_is_low):
-                    self.state = "safe"
-                    self.time_hot = 0
-                
-                elif (temp_is_high):
-                    self.state = "danger"
+            # if temp is not safe and also there is no safe time, then stay in danger state
+            else:
+                self.state = "danger"
+
+        # if movement detected, leave state as safe if safe, else change state to warning
+        if (movement_detected):
+            if (self.state == "safe"):
+                self.state = "safe"
+            elif (self.state == "warning" or self.state == "danger"):
+                self.state = "warning"
 
         # for return value:
         if (self.state == "safe"):
